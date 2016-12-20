@@ -2,14 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using SlimDX.DirectInput;
-using XboxControllerApp;
+using SharpDX.DirectInput;
 
 namespace ControllerVisualizer
 {
-
-
-
     public class GamePad : IDisposable
     {
         public Guid Identifier { get; set; }
@@ -32,7 +28,7 @@ namespace ControllerVisualizer
             List<GamePad> listOfConnectedPads = new List<GamePad>();
             using (DirectInput input = new DirectInput())
             {
-                foreach (var item in input.GetDevices(DeviceClass.GameController, DeviceEnumerationFlags.AttachedOnly))
+                foreach (var item in input.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly))
                 {
                     listOfConnectedPads.Add(new GamePad(item.InstanceGuid, item.InstanceName));
                     System.Diagnostics.Debug.Print("Guid: {0}; NAME: {1}", item.InstanceGuid, item.InstanceName);
@@ -52,12 +48,15 @@ namespace ControllerVisualizer
             if (!this.IsAquired)
                 throw new GamePadNotAquiredException("Das Gamepad wurde noch nicht an die Anwendung gebunden. Use .Aquire(Form)");
             JoystickState state = new JoystickState();
-            if (this.pad.GetCurrentState(ref state).IsSuccess)
+            try
             {
+                this.pad.GetCurrentState(ref state);
                 return GetChanges(state);
+
             }
-            else
+            catch (Exception e)
             {
+
                 throw new NotImplementedException();
             }
         }
@@ -67,7 +66,7 @@ namespace ControllerVisualizer
         {
             ControllerState returnState = new ControllerState();
 
-            bool[] btns = state.GetButtons();
+            bool[] btns = state.Buttons;
             if (btns[0])
                 returnState.PressedButtons |= ControllerState.Buttons.X;
             if (btns[1])
@@ -104,15 +103,24 @@ namespace ControllerVisualizer
             {
                 this.pad = new Joystick(dinput, this.Identifier);
 
-                foreach (DeviceObjectInstance doi in this.pad.GetObjects(ObjectDeviceType.Axis))
+                foreach (DeviceObjectInstance doi in this.pad.GetObjects(DeviceObjectTypeFlags.Axis))
                 {
-                    this.pad.GetObjectPropertiesById((int)doi.ObjectType).SetRange(-5000, 5000);
+                    this.pad.GetObjectPropertiesById(doi.ObjectId).Range = new InputRange(-5000, 5000);
                 }
 
                 this.pad.Properties.AxisMode = DeviceAxisMode.Absolute;
-                this.pad.SetCooperativeLevel(parent, (CooperativeLevel.Nonexclusive | CooperativeLevel.Background));
+                this.pad.SetCooperativeLevel(parent.Handle, (CooperativeLevel.NonExclusive | CooperativeLevel.Background));
 
-                this.IsAquired = this.pad.Acquire().IsSuccess;
+                try
+                {
+                    this.pad.Acquire();
+                    this.IsAquired = true;
+                }
+                catch (Exception)
+                {
+                    this.IsAquired = false;
+                }
+
             }
         }
 

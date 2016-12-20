@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Collections.Specialized;
-using SlimDX.DirectInput;
 using System.ComponentModel;
 using ControllerVisualizer;
 
-namespace XboxControllerApp
+namespace ControllerVisualizer
 {
     public delegate void ControllerStateChangedHandler(ControllerStateEventArgs e);
 
